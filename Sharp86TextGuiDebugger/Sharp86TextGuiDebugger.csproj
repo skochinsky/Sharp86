@@ -50,6 +50,14 @@
     <Compile Include="WatchWindow.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ConFrames\ConFrames\ConFrames.csproj">
+      <Project>{64905ddf-9d01-4a63-bd60-a2586008cee2}</Project>
+      <Name>ConFrames</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\PetaJson\PetaJson_Net40.csproj">
+      <Project>{32c1e6d1-46ba-4c3a-83bf-290e1c5d4690}</Project>
+      <Name>PetaJson_Net40</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Sharp86DebuggerCore\Sharp86DebuggerCore.csproj">
       <Project>{5dd0e722-c0f7-46c4-8fc4-13f56d881a75}</Project>
       <Name>Sharp86DebuggerCore</Name>

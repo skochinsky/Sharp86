@@ -72,6 +72,10 @@
     <Compile Include="WatchExpression.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\PetaJson\PetaJson_Net40.csproj">
+      <Project>{32c1e6d1-46ba-4c3a-83bf-290e1c5d4690}</Project>
+      <Name>PetaJson_Net40</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Sharp86\Sharp86.csproj">
       <Project>{b7b582a0-ced8-497b-a9b8-ef152326c713}</Project>
       <Name>Sharp86</Name>

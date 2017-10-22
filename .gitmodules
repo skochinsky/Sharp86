@@ -4,3 +4,6 @@
 [submodule "conframes"]
 	path = conframes
 	url = git@bitbucket.org:toptensoftware/conframes.git
+[submodule "ConFrames"]
+	path = ConFrames
+	url = git@bitbucket.org:toptensoftware/ConFrames.git

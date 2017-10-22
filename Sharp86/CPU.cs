@@ -354,7 +354,7 @@ namespace Sharp86
         #region Instruction Execution
 
         // Decode prefixes
-        bool _prefixLock;
+        //bool _prefixLock;
         bool _prefixRepEither;
         bool _prefixRepNE;
         RegSeg _prefixSegment;
@@ -779,7 +779,7 @@ namespace Sharp86
             return false;
         }
 
-        bool _executing = false;
+        //bool _executing = false;
 
 
         // was the last instruction a return?
@@ -809,7 +809,7 @@ namespace Sharp86
             if (_halt)
                 return;
 
-            _executing = true;
+//            _executing = true;
 
             // Update CPU time
             CpuTime++;
@@ -823,7 +823,7 @@ namespace Sharp86
                 if (!_debugger.OnStep())
                 {
                     _inDebugger = false;
-                    _executing = false;
+//                    _executing = false;
                     return;
                 }
                 _inDebugger = false;
@@ -837,7 +837,7 @@ namespace Sharp86
             try
             {
                 // Decode prefixes
-                _prefixLock = false;
+//                _prefixLock = false;
                 _prefixRepEither = false;
                 _prefixRepNE = false;
                 _prefixSegment = RegSeg.None;
@@ -2584,7 +2584,7 @@ namespace Sharp86
 
                     case 0xF0:
                         // LOCK (Ignore)
-                        _prefixLock = true;
+//                        _prefixLock = true;
                         goto prefixHandled;
 
                     case 0xF1: 
@@ -2780,7 +2780,7 @@ namespace Sharp86
             }
             finally
             {
-                _executing = false;
+//                _executing = false;
             }
         }
 

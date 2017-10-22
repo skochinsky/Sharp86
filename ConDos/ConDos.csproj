@@ -52,6 +52,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Sharp86DebuggerCore\Sharp86DebuggerCore.csproj">
+      <Project>{5dd0e722-c0f7-46c4-8fc4-13f56d881a75}</Project>
+      <Name>Sharp86DebuggerCore</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Sharp86TextGuiDebugger\Sharp86TextGuiDebugger.csproj">
       <Project>{460777c5-52d2-4680-945c-037026022c02}</Project>
       <Name>Sharp86TextGuiDebugger</Name>
