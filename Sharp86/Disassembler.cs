@@ -934,7 +934,7 @@ namespace Sharp86
                         }
                         else
                         {
-                            ImplicitParams = "byte ptr ds:[si],es:di";
+                            ImplicitParams = "ds:si,es:di";
                             return string.Format("{0}movsb", RepPrefix());
                         }
 
@@ -948,7 +948,7 @@ namespace Sharp86
                         }
                         else
                         {
-                            ImplicitParams = "word ptr ds:[si],es:di";
+                            ImplicitParams = "ds:si,es:di";
                             return string.Format("{0}movsw", RepPrefix());
                         }
 
@@ -961,7 +961,7 @@ namespace Sharp86
                         }
                         else
                         {
-                            ImplicitParams = "byte ptr ds:[si],es:di";
+                            ImplicitParams = "ds:si,es:di";
                             return string.Format("{0}cmpsb", RepPrefix());
                         }
 

@@ -13,8 +13,8 @@ namespace Sharp86
 
     public interface IPortBus
     {
-        ushort ReadPortWord(ushort port);
-        void WritePortWord(ushort port, ushort value);
+        byte ReadPortByte(ushort port);
+        void WritePortByte(ushort port, byte value);
     }
 
     [Flags]
@@ -162,6 +162,7 @@ namespace Sharp86
             return Encoding.GetEncoding(1252).GetString(This.ReadBytes(seg, offset, endPos - offset));
         }
 
+
         public static void WriteStruct<T>(this IMemoryBus This, uint ptr, ref T value)
         {
             unsafe
@@ -172,6 +173,19 @@ namespace Sharp86
                     Marshal.StructureToPtr(value, (IntPtr)p, false);
                 }
                 This.WriteBytes(ptr, temp);
+            }
+        }
+
+        public static void WriteStruct<T>(this IMemoryBus This, ushort seg, ushort offs, ref T value)
+        {
+            unsafe
+            {
+                byte[] temp = new byte[Marshal.SizeOf(typeof(T))];
+                fixed (byte* p = temp)
+                {
+                    Marshal.StructureToPtr(value, (IntPtr)p, false);
+                }
+                This.WriteBytes(seg, offs, temp);
             }
         }
 
@@ -187,19 +201,42 @@ namespace Sharp86
             }
         }
 
+        public static void WriteStruct<T>(this byte[] This, uint offset, T value)
+        {
+            unsafe
+            {
+                fixed (byte* p = This)
+                {
+                    Marshal.StructureToPtr(value, (IntPtr)(p + offset), false);
+                }
+            }
+        }
+
+        public static T ReadStruct<T>(this byte[] This, uint ptr)
+        {
+            unsafe
+            {
+                fixed (byte* p = This)
+                {
+                    return (T)Marshal.PtrToStructure((IntPtr)(p + ptr), typeof(T));
+                }
+            }
+        }
+
     }
 
     public static class IPortBusExtensions
     {
 
-        public static byte ReadPortByte(this IPortBus This, ushort port)
+        public static ushort ReadPortWord(this IPortBus This, ushort port)
         {
-            return (byte)(This.ReadPortWord(port) & 0xFF);
+            return (ushort)(This.ReadPortWord(port) | This.ReadPortWord((ushort)(port + 1)) << 8);
         }
 
-        public static void WritePortByte(this IPortBus This, ushort port, byte value)
+        public static void WritePortWord(this IPortBus This, ushort port, ushort value)
         {
-            This.WritePortWord(port, value);
+            This.WritePortByte(port, (byte)(value & 0xFF));
+            This.WritePortByte((ushort)(port + 1), (byte)((value >> 8) & 0xFF));
         }
 
 

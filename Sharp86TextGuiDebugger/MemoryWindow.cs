@@ -69,9 +69,16 @@ namespace Sharp86
             var displayedBytes = (ushort)(BytesPerRow * ClientSize.Height);
             var memoryState = new MemoryState[displayedBytes];
             IMemoryBusDebug debugBus = _debugger.MemoryBus as IMemoryBusDebug;
-            if (debugBus!= null)
+            if (debugBus != null)
             {
                 debugBus.GetMemoryState(_seg, _offset, memoryState);
+            }
+            else
+            {
+                for (int i = 0; i < displayedBytes; i++)
+                {
+                    memoryState[i] = MemoryState.Valid;
+                }
             }
 
             ushort modAttributes = ConFrames.Attribute.Make(ConsoleColor.White, ConsoleColor.Blue);

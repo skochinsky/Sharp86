@@ -108,7 +108,7 @@ namespace Sharp86
             debugger.AddBreakPoint(new CpuTimeBreakPoint(time));
         }
 
-        [DebuggerHelp("Set a CPU time break point")]
+        [DebuggerHelp("Set a interrupt break point")]
         public void bp_int(DebuggerCore debugger, byte number)
         {
             debugger.AddBreakPoint(new InterruptBreakPoint(number));
