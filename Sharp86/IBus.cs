@@ -129,13 +129,13 @@ namespace Sharp86
             return ReadString(This, (ushort)(ptr >> 16), (ushort)(ptr & 0xFFFF));
         }
 
-        public static string ReadString(this IMemoryBus This, ushort seg, ushort offset)
+        public static string ReadString(this IMemoryBus This, ushort seg, ushort offset, byte terminator = 0)
         {
             if (seg == 0 && offset == 0)
                 return null;
 
             ushort endPos = offset;
-            while (This.ReadByte(seg, endPos) != 0)
+            while (This.ReadByte(seg, endPos) != terminator)
             {
                 endPos++;
             }
