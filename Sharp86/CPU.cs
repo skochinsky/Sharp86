@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Sharp86
 {
@@ -673,6 +675,14 @@ namespace Sharp86
             {
                 return false;
             }
+        }
+
+        HashSet<byte> _pendingHardwareInterrupts = new HashSet<byte>();
+
+        public void RaiseHardwareInterrupt(byte interruptNumber)
+        {
+            // Put it in the queue, we'll raise it at the end of the next instruction
+            _pendingHardwareInterrupts.Add(interruptNumber);
         }
 
         public virtual void RaiseInterrupt(byte interruptNumber)
@@ -2780,6 +2790,14 @@ namespace Sharp86
             }
             finally
             {
+                // If interrupts are enabled and we have a pending hardward interrupt, then raise it now
+                if (FlagI && _pendingHardwareInterrupts.Count > 0)
+                {
+                    var first = _pendingHardwareInterrupts.First();
+                    _pendingHardwareInterrupts.Remove(first);
+                    RaiseInterruptInternal(first);
+                }
+
 //                _executing = false;
             }
         }
