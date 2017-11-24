@@ -201,6 +201,11 @@ namespace Sharp86
             }
         }
 
+
+    }
+
+    public static class ByteArrayExtensions
+    {
         public static void WriteStruct<T>(this byte[] This, uint offset, T value)
         {
             unsafe
@@ -221,6 +226,34 @@ namespace Sharp86
                     return (T)Marshal.PtrToStructure((IntPtr)(p + ptr), typeof(T));
                 }
             }
+        }
+
+        public static ushort ReadWord(this byte[] This, uint ptr)
+        {
+            return (ushort)(This[ptr] | This[ptr + 1] << 8);
+        }
+
+        public static void WriteWord(this byte[] This, uint ptr, ushort value)
+        {
+            This[ptr] = (byte)(value & 0xFF);
+            This[ptr + 1] = (byte)((value >> 8) & 0xFF);
+        }
+
+        public static uint ReadDWord(this byte[] This, uint ptr)
+        {
+            return (uint)(
+                    This[ptr] |
+                    (This[ptr+1] << 8) |
+                    (This[ptr+2] << 16) |
+                    (This[ptr+3] << 24));
+
+        }
+        public static void WriteDWord(this byte[] This, uint ptr, uint value)
+        {
+            This[ptr] = (byte)(value & 0xFF);
+            This[ptr+1] = (byte)((value >> 8) & 0xFF);
+            This[ptr+2] = (byte)((value >> 16) & 0xFF);
+            This[ptr+3] = (byte)((value >> 24) & 0xFF);
         }
 
     }
