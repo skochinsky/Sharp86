@@ -851,15 +851,24 @@ namespace Sharp86
 
         public ulong CpuTime = 0xFFFFFFFFFFFFFFFFUL;
 
+        int _instructions;
+
+        // Stop processing instructions in the current run frame and return to caller
+        public void AbortRunFrame()
+        {
+            _instructions = 0;
+        }
+
         public void Run(int instructions)
         {
-            while (instructions > 0)
+            _instructions = instructions;
+            while (_instructions > 0)
             {
-                RunInternal(ref instructions);
+                RunInternal();
             }
         }
 
-        public void RunInternal(ref int instructions)
+        public void RunInternal()
         {
             // Not if halted
             if (_halt)
@@ -868,9 +877,9 @@ namespace Sharp86
             //            _executing = true;
             try
             {
-                while (instructions > 0)
+                while (_instructions > 0)
                 {
-                    instructions--;
+                    _instructions--;
 
                     // Update CPU time
                     CpuTime++;
