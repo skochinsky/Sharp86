@@ -56,7 +56,7 @@ namespace Sharp86
                 FlagS = (value & EFlag.SF) != 0;
                 FlagT = (value & EFlag.TF) != 0;
                 FlagD = (value & EFlag.DF) != 0;
-                //FlagI = (value & EFlag.IF) != 0;
+                FlagI = (value & EFlag.IF) != 0;
                 FlagO = (value & EFlag.OF) != 0;
             }
         }
