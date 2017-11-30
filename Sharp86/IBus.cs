@@ -90,9 +90,11 @@ namespace Sharp86
             return This.ReadBytes((ushort)(ptr >> 16), (ushort)(ptr & 0xFFFF), count);
         }
 
-        public static void WriteBytes(this IMemoryBus This, ushort seg, ushort offset, byte[] bytes)
+        public static void WriteBytes(this IMemoryBus This, ushort seg, ushort offset, byte[] bytes, int length = -1)
         {
-            for (int i = 0; i < bytes.Length; i++)
+            if (length < 0)
+                length = bytes.Length;
+            for (int i = 0; i < length; i++)
             {
                 This.WriteByte(seg, offset++, bytes[i]);
             }

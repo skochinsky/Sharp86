@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -36,7 +37,7 @@ namespace Sharp86
                 debugger.WriteLine(bp.ToString());
             }
         }
-        
+
         [DebuggerHelp("Delete break point")]
         public void bp_del(DebuggerCore debugger, BreakPoint bp)
         {
@@ -262,8 +263,20 @@ namespace Sharp86
             }
         }
 
+        [DebuggerHelp("Disassemble (format=b,w,dw,i,l)")]
+        public void disasm(DebuggerCore debugger, FarPointer addr, ushort length = 16)
+        {
+            var dis = new Disassembler(debugger.CPU);
+            dis.cs = addr.Segment;
+            dis.ip = addr.Offset;
+            while (dis.ip < addr.Offset + length)
+            {
+                debugger.WriteLine("{0:X4}:{1:X4} {2}", dis.cs, dis.ip, dis.Read());
+            }
+        }
+
         [DebuggerHelp("Dump memory (format=b,w,dw,i,l)")]
-        public void dump_mem(DebuggerCore debugger, FarPointer addr, ushort length=16, string format="b")
+        public void dump_mem(DebuggerCore debugger, FarPointer addr, ushort length = 16, string format = "b")
         {
             try
             {
@@ -272,33 +285,33 @@ namespace Sharp86
                 switch (format)
                 {
                     case "b":
-                    {
-                        char[] chBuf = new char[16];
-                        for (int i=0; i<length; i++)
                         {
-                            if ((i % 16 == 0))
+                            char[] chBuf = new char[16];
+                            for (int i = 0; i < length; i++)
                             {
-                                if (i > 0)
+                                if ((i % 16 == 0))
                                 {
-                                    debugger.Write("|");
-                                    debugger.Write(new string(chBuf));
-                                    debugger.WriteLine("|");
+                                    if (i > 0)
+                                    {
+                                        debugger.Write("|");
+                                        debugger.Write(new string(chBuf));
+                                        debugger.WriteLine("|");
+                                    }
+                                    debugger.Write(string.Format("{0:X4}:{1:X4} ", seg, ofs + i));
                                 }
-                                debugger.Write(string.Format("{0:X4}:{1:X4} ", seg, ofs + i));
+
+                                byte b = debugger.CPU.MemoryBus.ReadByte(seg, (ushort)(ofs + i));
+                                chBuf[i % 16] = (b >= 32 && b < 128) ? (char)b : ' ';
+                                debugger.Write(string.Format("{0:X2} ", b));
                             }
 
-                            byte b = debugger.CPU.MemoryBus.ReadByte(seg, (ushort)(ofs + i));
-                            chBuf[i % 16] = (b >= 32 && b < 128) ? (char)b : ' ';
-                            debugger.Write(string.Format("{0:X2} ", b));
+                            if ((length % 16) != 0)
+                                debugger.Write(new string(' ', (16 - length % 16) * 3));
+                            debugger.Write("|");
+                            debugger.Write(new string(chBuf, 0, (length % 16) == 0 ? 16 : length % 16));
+                            debugger.WriteLine("|");
+                            break;
                         }
-
-                        if ((length % 16)!=0)
-                            debugger.Write(new string(' ', (16 - length % 16) * 3));
-                        debugger.Write("|");
-                        debugger.Write(new string(chBuf, 0, (length % 16) == 0 ? 16 : length % 16));
-                        debugger.WriteLine("|");
-                        break;
-                    }
 
                     case "w":
                         for (int i = 0; i < length; i++)
@@ -312,7 +325,7 @@ namespace Sharp86
                                 debugger.Write(string.Format("{0:X4}:{1:X4} ", seg, ofs + i * 2));
                             }
 
-                            var val = debugger.CPU.MemoryBus.ReadWord(seg, (ushort)(ofs + i*2));
+                            var val = debugger.CPU.MemoryBus.ReadWord(seg, (ushort)(ofs + i * 2));
                             debugger.Write(string.Format("{0:X4} ", val));
                         }
 
@@ -377,7 +390,7 @@ namespace Sharp86
                         break;
                 }
             }
-            catch (CPUException)         
+            catch (CPUException)
             {
                 debugger.WriteLine("#err");
             }
@@ -421,7 +434,34 @@ namespace Sharp86
             debugger.EnableTrace = false;
             trace_set(debugger);
         }
+
+        TextWriter _logger;
+
+        [DebuggerHelp("Log output to a file")]
+        public void log(DebuggerCore debugger, string filename)
+        {
+            if (_logger != null)
+            {
+                _logger.Dispose();
+                _logger = null;
+            }
+            _logger = new StreamWriter(filename, false, Encoding.UTF8);
+            debugger.WriteLine("Logging to file {0}", filename);
+            debugger.Redirect(_logger);
+        }
+
+        [DebuggerHelp("Close log file")]
+        public void close_log(DebuggerCore debugger)
+        {
+            if (_logger != null)
+            {
+                debugger.Redirect(null);
+                _logger.Dispose();
+            }
+            debugger.WriteLine("Logger closed");
+        }
     }
+
 }
 
 
