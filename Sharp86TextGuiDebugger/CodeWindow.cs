@@ -255,7 +255,7 @@ namespace Sharp86
                 case ConsoleKey.F10:
                     if (key.Modifiers == ConsoleModifiers.Control)
                     {
-                        _debugger.ExecuteCommand(string.Format("rto 0x{0:X4}:0x{1:X4}", _renderedCS, _renderedIPs[CursorY]));
+                        _debugger.ExecuteCommand(string.Format("r to 0x{0:X4}:0x{1:X4}", _renderedCS, _renderedIPs[CursorY]));
                     }
                     break;
             }
