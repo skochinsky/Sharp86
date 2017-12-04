@@ -712,12 +712,12 @@ namespace Sharp86
             }
         }
 
-        HashSet<byte> _pendingHardwareInterrupts = new HashSet<byte>();
+        byte? _pendingHardwareInterrupt;
 
         public void RaiseHardwareInterrupt(byte interruptNumber)
         {
             // Put it in the queue, we'll raise it at the end of the next instruction
-            _pendingHardwareInterrupts.Add(interruptNumber);
+            _pendingHardwareInterrupt = interruptNumber;
         }
 
         public virtual void RaiseInterrupt(byte interruptNumber)
@@ -852,20 +852,24 @@ namespace Sharp86
         public ulong CpuTime = 0xFFFFFFFFFFFFFFFFUL;
 
         int _instructions;
+        bool _runFrameAborted;
 
         // Stop processing instructions in the current run frame and return to caller
         public void AbortRunFrame()
         {
             _instructions = 0;
+            _runFrameAborted = true;
         }
 
-        public void Run(int instructions)
+        public bool Run(int instructions)
         {
             _instructions = instructions;
+            _runFrameAborted = false;
             while (_instructions > 0)
             {
                 RunInternal();
             }
+            return _runFrameAborted;
         }
 
         public void RunInternal()
@@ -2823,6 +2827,14 @@ namespace Sharp86
                             }
                             break;
                     }
+
+                    // If interrupts are enabled and we have a pending hardward interrupt, then raise it now
+                    if (FlagI && _pendingHardwareInterrupt.HasValue)
+                    {
+                        var intNo = _pendingHardwareInterrupt.Value;
+                        _pendingHardwareInterrupt = null;
+                        RaiseInterruptInternal(intNo);
+                    }
                 }
             }
             catch (DivideByZeroException)
@@ -2846,18 +2858,6 @@ namespace Sharp86
                     RaiseInterruptInternal((byte)x.InterruptNo);
                 else
                     throw;
-            }
-            finally
-            {
-                // If interrupts are enabled and we have a pending hardward interrupt, then raise it now
-                if (FlagI && _pendingHardwareInterrupts.Count > 0)
-                {
-                    var first = _pendingHardwareInterrupts.First();
-                    _pendingHardwareInterrupts.Remove(first);
-                    RaiseInterruptInternal(first);
-                }
-
-//                _executing = false;
             }
         }
 
