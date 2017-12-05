@@ -849,7 +849,7 @@ namespace Sharp86
         bool _inDebugger;
         ushort _ipInstruction;
 
-        public ulong CpuTime = 0xFFFFFFFFFFFFFFFFUL;
+        public ulong CpuTime = 0;//0xFFFFFFFFFFFFFFFFUL;
 
         int _instructions;
         bool _runFrameAborted;
