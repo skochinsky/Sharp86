@@ -38,7 +38,6 @@ namespace Sharp86
                 }
 
                 _cpu = value;
-                _memoryBus = _cpu.MemoryBus;
                 _disassembler = new Disassembler(_cpu);
 
                 if (_cpu != null)
@@ -52,10 +51,9 @@ namespace Sharp86
             }
         }
 
-        IMemoryBus _memoryBus;
         public IMemoryBus MemoryBus
         {
-            get { return _memoryBus; }
+            get { return _cpu.MemoryBus; }
         }
 
         CPU _cpu;
@@ -428,7 +426,7 @@ namespace Sharp86
             {
                 if (_cpu.ActiveMemoryBus == this)
                 {
-                    _cpu.ActiveMemoryBus = _memoryBus;
+                    _cpu.ActiveMemoryBus = _cpu.MemoryBus;
                 }
             }
         }
@@ -437,12 +435,12 @@ namespace Sharp86
 
         bool IMemoryBus.IsExecutableSelector(ushort seg)
         {
-            return _memoryBus.IsExecutableSelector(seg);
+            return _cpu.MemoryBus.IsExecutableSelector(seg);
         }
 
         byte IMemoryBus.ReadByte(ushort seg, ushort offset)
         {
-            byte b = _memoryBus.ReadByte(seg, offset);
+            byte b = _cpu.MemoryBus.ReadByte(seg, offset);
 
             for (int i = _memReadBreakPoints.Count - 1; i >= 0; i--)
             {
@@ -463,7 +461,7 @@ namespace Sharp86
 
             if (_memWriteBreakPoints.Count > 0)
             {
-                var oldValue = _memoryBus.ReadByte(seg, offset);
+                var oldValue = _cpu.MemoryBus.ReadByte(seg, offset);
 
                 for (int i=_memWriteBreakPoints.Count-1; i>=0; i--)
                 {
@@ -471,7 +469,7 @@ namespace Sharp86
                 }
             }
 
-            _memoryBus.WriteByte(seg, offset, value);
+            _cpu.MemoryBus.WriteByte(seg, offset, value);
         }
 
         #endregion

@@ -728,7 +728,7 @@ namespace Sharp86
 
             if (newcs == 0 && newip == 0)
             {
-                 throw new InvalidOperationException(string.Format("No handler for interrupt 0x{0:X2} at {1:X4}:{2:X4}", interruptNumber, cs, ip));
+                throw new InvalidOperationException(string.Format("No handler for interrupt 0x{0:X2} at {1:X4}:{2:X4}", interruptNumber, cs, ip));
             }
 
             // Save state
@@ -872,6 +872,21 @@ namespace Sharp86
             return _runFrameAborted;
         }
 
+        // True if reading instruction opcode from memory bus
+        public bool M1
+        {
+            get { return _m1; }
+        }
+
+        bool _m1;
+
+        Action _instructionHook;
+        public Action InstructionHook
+        {
+            get => _instructionHook;
+            set => _instructionHook = value;
+        }
+
         public void RunInternal()
         {
             // Not if halted
@@ -887,6 +902,8 @@ namespace Sharp86
 
                     // Update CPU time
                     CpuTime++;
+
+                    _instructionHook?.Invoke();
 
                     // Notify debugger
                     if (_debugger != null)
@@ -919,7 +936,10 @@ namespace Sharp86
 
                     prefixHandled:      // will jump back to here after decoding an instruction prefix
 
+                    _m1 = true;
                     byte opCode = _activeMemoryBus.ReadByte(cs, ip++);
+                    _m1 = false;
+
                     switch (opCode)
                     {
                         case 0x00:
