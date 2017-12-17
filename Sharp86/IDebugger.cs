@@ -5,5 +5,6 @@ namespace Sharp86
     {
         bool OnStep();
         bool OnSoftwareInterrupt(byte interruptNumber);
+        void Break();
     } 
 }
