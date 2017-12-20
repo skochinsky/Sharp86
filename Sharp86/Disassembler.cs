@@ -374,7 +374,7 @@ namespace Sharp86
 
         string Read_Ib_sx()
         {
-            return string.Format("0x{0:X2}", unchecked((sbyte)ReadByte(cs, ip++)));
+            return string.Format("0x{0:X4}", unchecked((ushort)(sbyte)ReadByte(cs, ip++)));
         }
 
         string Read_Iv()
@@ -756,7 +756,7 @@ namespace Sharp86
                     case 0x6A:
                         // PUSH Ib
                         ImplicitParams = "sp";
-                        return string.Format("push byte {0}", Read_Ib());
+                        return string.Format("push byte {0}", Read_Ib_sx());
 
                     case 0x6B:
                         // imul Gv,Ev,Ib
@@ -815,7 +815,7 @@ namespace Sharp86
                     case 0x83:
                         // GRP1 Ev Ib 
                         ReadModRM();
-                        return string.Format("{0} {1},{2}", Group1Name(_modRM >> 3), Read_Ev(), Read_Ib());
+                        return string.Format("{0} {1},{2}", Group1Name(_modRM >> 3), Read_Ev(), Read_Ib_sx());
 
                     case 0x84:
                         // Test Gb, Eb
