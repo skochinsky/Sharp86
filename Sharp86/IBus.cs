@@ -35,28 +35,6 @@ namespace Sharp86
         void WritePortByte(ushort port, byte value);
     }
 
-    [Flags]
-    public enum MemoryState : byte
-    {
-        Invalid = 0,
-        Valid = 0x01,
-        Changed = 0x02,
-
-        InvalidUnchanged = 0,
-        InvalidChanged = Changed,
-        ValidUnchanged = Valid,
-        ValidChanged = Valid | Changed,
-    }
-
-    public interface IMemoryBusDebug
-    {
-        void StartTracking();
-        void EndTracking();
-        void ResetState();
-        void GetMemoryState(ushort seg, ushort startOffset, MemoryState[] state);
-        bool DidMemoryChange(ushort seg, ushort offset, uint length);
-    }
-
     public static class IMemoryBusExtensions
     {
         public static ushort ReadWord(this IMemoryBus This, uint ptr)

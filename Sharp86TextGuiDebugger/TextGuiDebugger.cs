@@ -27,6 +27,8 @@ namespace Sharp86
     {
         public TextGuiDebugger()
         {
+            CaptureModifiedAddresses = true;
+
             CommandDispatcher.RegisterCommandHandler(new TextGuiDebuggerCommands(this));
 
             _desktop = new ConFrames.Desktop(120, 40);
@@ -93,9 +95,6 @@ namespace Sharp86
             _watchWindow.OnBreak();
             _desktop.Process();
             _registersWindow.Capture();
-            var debugBus = MemoryBus as IMemoryBusDebug;
-            if (debugBus != null)
-                debugBus.ResetState();
 
             return true;
         }

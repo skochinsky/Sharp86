@@ -45,13 +45,8 @@ namespace Sharp86
             }
             set
             {
-                IMemoryBusDebug debugBus;
                 if (_cpu != null)
                 {
-                    debugBus = _cpu.MemoryBus as IMemoryBusDebug;
-                    if (debugBus != null)
-                        debugBus.EndTracking();
-
                     _cpu.Debugger = null;
                 }
 
@@ -61,11 +56,9 @@ namespace Sharp86
                 if (_cpu != null)
                 {
                     _cpu.Debugger = this;
-
-                    debugBus = _cpu.MemoryBus as IMemoryBusDebug;
-                    if (debugBus != null)
-                        debugBus.StartTracking();
                 }
+
+                PrepareBreakPoints();
             }
         }
 
@@ -95,8 +88,8 @@ namespace Sharp86
         public virtual string FormatTrace()
         {
             var disasm = _disassembler.Read(_cpu.cs, _cpu.ip);
-            return string.Format("{0,12} {1:X4}:{2:X4} {3,-30} {4}", 
-                _cpu.CpuTime, _cpu.cs, _cpu.ip, 
+            return string.Format("{0,12} {1:X4}:{2:X4} {3,-30} {4}",
+                _cpu.CpuTime, _cpu.cs, _cpu.ip,
                 disasm, ExpressionContext.GenerateDisassemblyAnnotations(disasm, _disassembler.ImplicitParams));
         }
 
@@ -105,19 +98,19 @@ namespace Sharp86
         bool IDebugger.OnStep()
         {
             // Capture trace history
-            if (_traceBuffer!=null)
+            if (_traceBuffer != null)
             {
                 _traceBuffer.Write(FormatTrace());
             }
 
             // Test all break points
-            for (int i=0; i<_allBreakPoints.Count; i++)
+            for (int i = 0; i < _allBreakPoints.Count; i++)
             {
                 var bp = _allBreakPoints[i];
                 try
                 {
                     if (bp.Enabled && bp.ShouldBreak(this) && bp.CheckMatchConditions(this))
-                    {                                                                  
+                    {
                         bp.TripCount++;
                         if (bp.CheckBreakConditions(this))
                         {
@@ -135,7 +128,7 @@ namespace Sharp86
 
             }
 
-            if (_tempBreakPoint!=null)
+            if (_tempBreakPoint != null)
             {
                 if (_tempBreakPoint.ShouldBreak(this))
                 {
@@ -230,6 +223,7 @@ namespace Sharp86
                     if (!_shouldContinue)
                     {
                         OnBreak();
+                        _modifiedAddress.Clear();
                     }
                 }
                 finally
@@ -272,7 +266,7 @@ namespace Sharp86
                 return _break;
             }
         }
-        
+
         // Break on the next instruction (step into, or break while running)
         public void Break()
         {
@@ -316,16 +310,41 @@ namespace Sharp86
         bool _break;
 
         // Whether to record the addresses of any written bytes
-        /*
         bool _captureModifiedAddresses;
         public bool CaptureModifiedAddresses
         {
             get { return _captureModifiedAddresses; }
-            set { _captureModifiedAddresses = value; }
+            set { _captureModifiedAddresses = value; PrepareBreakPoints(); }
         }
 
         // A list of modified addresses
         List<AddressRange> _modifiedAddress = new List<AddressRange>();
+
+        /*
+        public bool DidMemoryChange(ushort seg, ushort startOffset, ushort length)
+        {
+            int endOffset = startOffset + length;
+
+            for (int i = 0; i < _modifiedAddress.Count; i++)
+            {
+                var a = _modifiedAddress[i];
+
+                // Check segment
+                if (a.Segment != seg)
+                    continue;
+
+                // Does it overlap the requested address range?
+                if (a.Offset + a.Length <= startOffset)
+                    continue;
+                if (a.Offset >= endOffset)
+                    continue;
+
+                return true;
+            }
+
+            return false;
+        }
+        */
 
         // Get an array indicating which bytes in the specified range were modified
         public bool[] GetModifiedAddresses(ushort seg, ushort startOffset, ushort length)
@@ -425,15 +444,17 @@ namespace Sharp86
                 _modifiedAddress.Insert(0, a);
             }
         }
-        */
 
         protected virtual void PrepareBreakPoints()
         {
+            if (_cpu == null)
+                return;
+
             _memWriteBreakPoints = _allBreakPoints.Where(x => x.Enabled).OfType<IBreakPointMemWrite>().ToList();
             _memReadBreakPoints = _allBreakPoints.Where(x => x.Enabled).OfType<IBreakPointMemRead>().ToList();
 
             // Hook/unhook the CPU's memory bus
-            if (_memReadBreakPoints.Count > 0 || _memWriteBreakPoints.Count>0)
+            if (_memReadBreakPoints.Count > 0 || _memWriteBreakPoints.Count>0 || _captureModifiedAddresses)
             {
                 if (_cpu.ActiveMemoryBus != this)
                 {
@@ -470,24 +491,48 @@ namespace Sharp86
 
         void IMemoryBus.WriteByte(ushort seg, ushort offset, byte value)
         {
-            /*
-            if (_captureModifiedAddresses)
+            // Read the old value
+            byte oldValue = 0;
+            if (_captureModifiedAddresses || _memWriteBreakPoints.Count > 0)
             {
-                RecordModifiedAddress(seg, offset);
+                try
+                {
+                    // Capture the old value
+                    oldValue = _cpu.MemoryBus.ReadByte(seg, offset);
+                }
+                catch
+                {
+                    // Ignore
+                }
             }
-            */
 
+            // Notify memory write break points
             if (_memWriteBreakPoints.Count > 0)
             {
-                var oldValue = _cpu.MemoryBus.ReadByte(seg, offset);
-
                 for (int i=_memWriteBreakPoints.Count-1; i>=0; i--)
                 {
                     _memWriteBreakPoints[i].WriteByte(seg, offset, oldValue, value);
                 }
             }
 
+            // Do the write
             _cpu.MemoryBus.WriteByte(seg, offset, value);
+
+            // Record changed memory
+            if (_captureModifiedAddresses)
+            {
+                try
+                {
+                    // Capture the old value
+                    if (_cpu.MemoryBus.ReadByte(seg, offset) != oldValue)
+                        RecordModifiedAddress(seg, offset);
+                }
+                catch
+                {
+                    // Ignore
+                }
+            }
+
         }
 
         #endregion

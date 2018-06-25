@@ -24,7 +24,7 @@ using System.Threading.Tasks;
 
 namespace Sharp86
 {
-    class MemoryChangeBreakPoint : BaseMemoryBreakPoint
+    class MemoryChangeBreakPoint : BaseMemoryBreakPoint, IBreakPointMemWrite
     {
         public MemoryChangeBreakPoint()
         {
@@ -35,15 +35,13 @@ namespace Sharp86
         {
         }
 
+        bool _tripped;
+
         public override bool ShouldBreak(DebuggerCore debugger)
         {
-            var cpu = debugger.CPU;
-
-            var bus = cpu.MemoryBus as IMemoryBusDebug;
-            if (bus == null)
-                return false;
-
-            return bus.DidMemoryChange(Segment, Offset, Length);
+            bool retv = _tripped;
+            _tripped = false;
+            return retv;
         }
 
         public override string ToString()
@@ -54,6 +52,17 @@ namespace Sharp86
                 Length
                 ));
 
+        }
+
+        void IBreakPointMemWrite.WriteByte(ushort seg, ushort offset, byte oldValue, byte newValue)
+        {
+            if (oldValue != newValue)
+            {
+                if (seg == Segment && offset >= Offset && offset < Offset + Length)
+                {
+                    _tripped = true;
+                }
+            }
         }
 
         public override string EditString

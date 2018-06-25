@@ -901,8 +901,8 @@ namespace Sharp86
         Action _instructionHook;
         public Action InstructionHook
         {
-            get => _instructionHook;
-            set => _instructionHook = value;
+            get { return _instructionHook; }
+            set { _instructionHook = value; }
         }
 
         public void RunInternal()

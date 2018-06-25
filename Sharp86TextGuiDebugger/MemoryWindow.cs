@@ -85,19 +85,7 @@ namespace Sharp86
 
             // Get memory state
             var displayedBytes = (ushort)(BytesPerRow * ClientSize.Height);
-            var memoryState = new MemoryState[displayedBytes];
-            IMemoryBusDebug debugBus = _debugger.MemoryBus as IMemoryBusDebug;
-            if (debugBus != null)
-            {
-                debugBus.GetMemoryState(_seg, _offset, memoryState);
-            }
-            else
-            {
-                for (int i = 0; i < displayedBytes; i++)
-                {
-                    memoryState[i] = MemoryState.Valid;
-                }
-            }
+            var modifiedBytes = _debugger.GetModifiedAddresses(_seg, _offset, displayedBytes);
 
             ushort modAttributes = ConFrames.Attribute.Make(ConsoleColor.White, ConsoleColor.Blue);
 
@@ -124,6 +112,8 @@ namespace Sharp86
                     break;
             }
 
+            var memoryValid = true;
+
             ushort offset = _offset;
             for (int i=0; i<ClientSize.Height; i++)
             {
@@ -135,17 +125,16 @@ namespace Sharp86
 
                 for (int x = 0; x<BytesPerRow; x += bytesPerFormat)
                 {
-                    MemoryState dataState = MemoryState.ValidUnchanged;
-
+                    bool modified = false;
 
                     uint data = 0;
                     for (int bi=0; bi<bytesPerFormat; bi++)
                     {
                         // Work out if modified
-                        var byteState = memoryState[offset - _offset + bi];
-                        dataState |= (byteState & MemoryState.Changed);
+                        var thisByteModified = modifiedBytes == null ? false : modifiedBytes[offset - _offset + bi];
+                        modified |= thisByteModified;
 
-                        if ((byteState & MemoryState.Valid)!=0)
+                        if (memoryValid)
                         {
                             try
                             {
@@ -154,55 +143,51 @@ namespace Sharp86
 
                                 if (b >= 32 && showChars)
                                 {
-                                    ctx.ForegroundColor = (byteState & MemoryState.Changed)!=0 ? ConsoleColor.White : ConsoleColor.Gray;
+                                    ctx.ForegroundColor = thisByteModified ? ConsoleColor.White : ConsoleColor.Gray;
                                     ctx.SetChar(x + 59 + bi, ctx.Position.Y, (char)b, ctx.Attributes);
                                 }
                             }
                             catch (CPUException)
                             {
-                                byteState &= ~MemoryState.Valid;
+                                memoryValid = false;
                             }
-                        }
-                        else
-                        {
-                            dataState &= ~MemoryState.Valid;
                         }
                     }
 
-                    ctx.ForegroundColor = (dataState & MemoryState.Changed)!=0 ? ConsoleColor.White : ConsoleColor.Gray;
+                    ctx.ForegroundColor = modified ? ConsoleColor.White : ConsoleColor.Gray;
 
                     switch (_viewFormat)
                     {
                         case ViewFormat.Byte:
-                            if ((dataState & MemoryState.Valid)!=0)
+                            if (memoryValid)
                                 ctx.Write("{0:X2} ", (byte)data);
                             else
                                 ctx.Write("?? ");
                             break;
 
                         case ViewFormat.Word:
-                            if ((dataState & MemoryState.Valid) != 0)
+                            if (memoryValid)
                                 ctx.Write("{0:X4} ", (ushort)data);
                             else
                                 ctx.Write("???? ");
                             break;
 
                         case ViewFormat.DWord:
-                            if ((dataState & MemoryState.Valid) != 0)
+                            if (memoryValid)
                                 ctx.Write("{0:X8} ", (uint)data);
                             else
                                 ctx.Write("???????? ");
                             break;
 
                         case ViewFormat.Int:
-                            if ((dataState & MemoryState.Valid) != 0)
+                            if (memoryValid)
                                 ctx.Write("{0,6} ", (short)data);
                             else
                                 ctx.Write("     ? ");
                             break;
 
                         case ViewFormat.Long:
-                            if ((dataState & MemoryState.Valid) != 0)
+                            if (memoryValid)
                                 ctx.Write("{0,11} ", (int)data);
                             else
                                 ctx.Write("          ? ");
