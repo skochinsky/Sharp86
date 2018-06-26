@@ -169,26 +169,10 @@ namespace Sharp86UnitTests
             Assert.AreEqual(ip, 0x105);
         }
 
-        ushort _accessedPort;
-        ushort _portValue;
-
-        public override ushort ReadPortWord(ushort port)
-        {
-            _accessedPort = port;
-            return _portValue;
-        }
-
-        public override void WritePortWord(ushort port, ushort value)
-        {
-            _accessedPort = port;
-            _portValue = value;
-        }
-
         [TestMethod]
         public void in_al_dx()
         {
-            _accessedPort = 0;
-            _portValue = 0x5678;
+            EnqueueReadPortByte(0x1234, 0x78);
 
             ax = 0;
             dx = 0x1234;
@@ -196,21 +180,22 @@ namespace Sharp86UnitTests
             step();
 
             Assert.AreEqual(ax, 0x78);
-            Assert.AreEqual(_accessedPort, 0x1234);
+            Assert.IsTrue(WasPortAccessed(0x1234));
         }
 
         [TestMethod]
         public void in_ax_dx()
         {
-            _accessedPort = 0;
-            _portValue = 0x5678;
+            EnqueueReadPortByte(0x1234, 0x78);
+            EnqueueReadPortByte(0x1235, 0x56);
 
             dx = 0x1234;
             emit("in ax,dx");
             step();
 
             Assert.AreEqual(ax, 0x5678);
-            Assert.AreEqual(_accessedPort, 0x1234);
+            Assert.IsTrue(WasPortAccessed(0x1234));
+            Assert.IsTrue(WasPortAccessed(0x1235));
         }
 
         [TestMethod]
@@ -222,8 +207,9 @@ namespace Sharp86UnitTests
             emit("out dx,al");
             step();
 
-            Assert.AreEqual(_portValue, 0x78);
-            Assert.AreEqual(_accessedPort, 0x1234);
+            Assert.AreEqual(DequeueWrittenPortByte(0x1234), 0x78);
+            Assert.IsTrue(WasPortAccessed(0x1234));
+            Assert.IsFalse(WasPortAccessed(0x1235));
         }
 
         [TestMethod]
@@ -235,8 +221,10 @@ namespace Sharp86UnitTests
             emit("out dx,ax");
             step();
 
-            Assert.AreEqual(_portValue, 0x5678);
-            Assert.AreEqual(_accessedPort, 0x1234);
+            Assert.AreEqual(DequeueWrittenPortByte(0x1234), 0x78);
+            Assert.AreEqual(DequeueWrittenPortByte(0x1235), 0x56);
+            Assert.IsTrue(WasPortAccessed(0x1234));
+            Assert.IsTrue(WasPortAccessed(0x1235));
         }
     }
 }

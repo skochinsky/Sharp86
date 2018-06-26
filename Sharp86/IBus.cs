@@ -261,7 +261,7 @@ namespace Sharp86
 
         public static ushort ReadPortWord(this IPortBus This, ushort port)
         {
-            return (ushort)(This.ReadPortWord(port) | This.ReadPortWord((ushort)(port + 1)) << 8);
+            return (ushort)(This.ReadPortByte(port) | This.ReadPortByte((ushort)(port + 1)) << 8);
         }
 
         public static void WritePortWord(this IPortBus This, ushort port, ushort value)

@@ -10,13 +10,6 @@ namespace Sharp86UnitTests
     [TestClass]
     public class OpCodeTests68 : CPUUnitTests
     {
-        [TestInitialize]
-        public void Setup()
-        {
-            _accessedPort = 0;
-            _portValue = 0;
-        }
-
         [TestMethod]
         public void push_Ib()
         {
@@ -70,38 +63,17 @@ namespace Sharp86UnitTests
         }
 
 
-        ushort _accessedPort;
-        ushort _portValue;
-
-
-        List<ushort> _writtenValues;
-
-        public override ushort ReadPortWord(ushort port)
-        {
-            _accessedPort = port;
-            ushort val = _portValue;
-            _portValue++;
-            return val;
-        }
-
-        public override void WritePortWord(ushort port, ushort value)
-        {
-            _accessedPort = port;
-            _portValue = value;
-            _writtenValues.Add(value);
-        }
-
         [TestMethod]
         public void insb()
         {
-            _portValue = 0x12;
+            EnqueueReadPortByte(0x5678, 0x12);
 
             di = 0x1000;
             dx = 0x5678;
             emit("insb");
             step();
 
-            Assert.AreEqual(_accessedPort, 0x5678);
+            Assert.IsTrue(WasPortAccessed(0x5678));
             Assert.AreEqual(di, 0x1001);
             Assert.AreEqual(ReadByte(ds, 0x1000), 0x12);
         }
@@ -109,7 +81,10 @@ namespace Sharp86UnitTests
         [TestMethod]
         public void rep_insb()
         {
-            _portValue = 0x12;
+            for (int i=0; i<5; i++)
+            {
+                EnqueueReadPortByte(0x5678, (byte)(0x12 + i));
+            }
 
             di = 0x1000;
             dx = 0x5678;
@@ -117,7 +92,7 @@ namespace Sharp86UnitTests
             emit("rep insb");
             step();
 
-            Assert.AreEqual(_accessedPort, 0x5678);
+            Assert.IsTrue(WasPortAccessed(0x5678));
             Assert.AreEqual(di, 0x1005);
             Assert.AreEqual(cx, 0);
             for (int i=0; i<5; i++)
@@ -129,15 +104,13 @@ namespace Sharp86UnitTests
         [TestMethod]
         public void rep_insb_cx0()
         {
-            _portValue = 0x12;
-
             di = 0x1000;
             dx = 0x5678;
             cx = 0;
             emit("rep insb");
             step();
 
-            Assert.AreEqual(_accessedPort, 0);
+            Assert.IsFalse(WasPortAccessed(0x5678));
             Assert.AreEqual(di, 0x1000);
             Assert.AreEqual(cx, 0);
         }
@@ -145,14 +118,16 @@ namespace Sharp86UnitTests
         [TestMethod]
         public void insw()
         {
-            _portValue = 0x1234;
+            EnqueueReadPortByte(0x5678, 0x34);
+            EnqueueReadPortByte(0x5679, 0x12);
 
             di = 0x1000;
             dx = 0x5678;
             emit("insw");
             step();
 
-            Assert.AreEqual(_accessedPort, 0x5678);
+            Assert.IsTrue(WasPortAccessed(0x5678));
+            Assert.IsTrue(WasPortAccessed(0x5679));
             Assert.AreEqual(di, 0x1002);
             Assert.AreEqual(ReadWord(ds, 0x1000), 0x1234);
         }
@@ -160,7 +135,11 @@ namespace Sharp86UnitTests
         [TestMethod]
         public void rep_insw()
         {
-            _portValue = 0x1245;
+            for (int i=0; i<5; i++)
+            {
+                EnqueueReadPortByte(0x5678, (byte)(0x34 + i));
+                EnqueueReadPortByte(0x5679, 0x12);
+            }
 
             di = 0x1000;
             dx = 0x5678;
@@ -168,27 +147,27 @@ namespace Sharp86UnitTests
             emit("rep insw");
             step();
 
-            Assert.AreEqual(_accessedPort, 0x5678);
+            Assert.IsTrue(WasPortAccessed(0x5678));
+            Assert.IsTrue(WasPortAccessed(0x5679));
             Assert.AreEqual(di, 0x100A);
             Assert.AreEqual(cx, 0);
             for (int i = 0; i < 5; i++)
             {
-                Assert.AreEqual(ReadWord(ds, (ushort)(0x1000 + i * 2)), (ushort)(0x1245 + i));
+                Assert.AreEqual(ReadWord(ds, (ushort)(0x1000 + i * 2)), (ushort)(0x1234 + i));
             }
         }
 
         [TestMethod]
         public void rep_insw_cx0()
         {
-            _portValue = 0x1245;
-
             di = 0x1000;
             dx = 0x5678;
             cx = 0;
             emit("rep insw");
             step();
 
-            Assert.AreEqual(_accessedPort, 0);
+            Assert.IsFalse(WasPortAccessed(0x5678));
+            Assert.IsFalse(WasPortAccessed(0x5679));
             Assert.AreEqual(di, 0x1000);
             Assert.AreEqual(cx, 0);
         }
@@ -196,25 +175,20 @@ namespace Sharp86UnitTests
         [TestMethod]
         public void outsb()
         {
-            _writtenValues = new List<ushort>();
-
             si = 0x1000;
             dx = 0x5678;
             WriteByte(ds, si, 0x12);
             emit("outsb");
             step();
 
-            Assert.AreEqual(_accessedPort, 0x5678);
+            Assert.IsTrue(WasPortAccessed(0x5678));
             Assert.AreEqual(si, 0x1001);
-            Assert.AreEqual(_writtenValues.Count, 1);
-            Assert.AreEqual(_writtenValues[0], 0x12);
+            Assert.AreEqual(DequeueWrittenPortByte(0x5678), 0x12);
         }
 
         [TestMethod]
         public void rep_outsb()
         {
-            _writtenValues = new List<ushort>();
-
             si = 0x1000;
             dx = 0x5678;
             cx = 5;
@@ -225,53 +199,46 @@ namespace Sharp86UnitTests
             emit("rep outsb");
             step();
 
-            Assert.AreEqual(_accessedPort, 0x5678);
+            Assert.IsTrue(WasPortAccessed(0x5678));
             Assert.AreEqual(si, 0x1005);
-            Assert.AreEqual(_writtenValues.Count, 5);
             for (int i = 0; i < 5; i++)
             {
-                Assert.AreEqual(_writtenValues[i], (byte)(0x12 + i));
+                Assert.AreEqual(DequeueWrittenPortByte(0x5678), (byte)(0x12 + i));
             }
         }
 
         [TestMethod]
         public void rep_outsb_cx0()
         {
-            _writtenValues = new List<ushort>();
-
             si = 0x1000;
             dx = 0x5678;
             cx = 0;
             emit("rep outsb");
             step();
 
-            Assert.AreEqual(_accessedPort, 0);
+            Assert.IsFalse(WasPortAccessed(0x5678));
             Assert.AreEqual(si, 0x1000);
-            Assert.AreEqual(_writtenValues.Count, 0);
         }
 
         [TestMethod]
         public void outsw()
         {
-            _writtenValues = new List<ushort>();
-
             si = 0x1000;
             dx = 0x5678;
             WriteWord(ds, si, 0x1234);
             emit("outsw");
             step();
 
-            Assert.AreEqual(_accessedPort, 0x5678);
+            Assert.IsTrue(WasPortAccessed(0x5678));
+            Assert.IsTrue(WasPortAccessed(0x5679));
             Assert.AreEqual(si, 0x1002);
-            Assert.AreEqual(_writtenValues.Count, 1);
-            Assert.AreEqual(_writtenValues[0], 0x1234);
+            Assert.AreEqual(DequeueWrittenPortByte(0x5678), 0x34);
+            Assert.AreEqual(DequeueWrittenPortByte(0x5679), 0x12);
         }
 
         [TestMethod]
         public void rep_outsw()
         {
-            _writtenValues = new List<ushort>();
-
             si = 0x1000;
             dx = 0x5678;
             cx = 5;
@@ -282,29 +249,26 @@ namespace Sharp86UnitTests
             emit("rep outsw");
             step();
 
-            Assert.AreEqual(_accessedPort, 0x5678);
+            Assert.IsTrue(WasPortAccessed(0x5678));
             Assert.AreEqual(si, 0x100A);
-            Assert.AreEqual(_writtenValues.Count, 5);
             for (int i = 0; i < 5; i++)
             {
-                Assert.AreEqual(_writtenValues[i], (ushort)(0x1234 + i));
+                Assert.AreEqual(DequeueWrittenPortByte(0x5678), (byte)(0x34 + i));
+                Assert.AreEqual(DequeueWrittenPortByte(0x5679), 0x12);
             }
         }
 
         [TestMethod]
         public void rep_outsw_cx0()
         {
-            _writtenValues = new List<ushort>();
-
             si = 0x1000;
             dx = 0x5678;
             cx = 0;
             emit("rep outsw");
             step();
 
-            Assert.AreEqual(_accessedPort, 0);
+            Assert.IsFalse(WasPortAccessed(0x5678));
             Assert.AreEqual(si, 0x1000);
-            Assert.AreEqual(_writtenValues.Count, 0);
         }
 
     }

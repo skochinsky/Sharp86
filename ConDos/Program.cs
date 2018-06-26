@@ -41,7 +41,7 @@ namespace ConDos
 
             while (!Halted)
             {
-                Step();
+                Run(10000);
             }
         }
 
@@ -83,12 +83,12 @@ namespace ConDos
             base.RaiseInterrupt(interruptNumber);
         }
 
-        public ushort ReadPortWord(ushort port)
+        public byte ReadPortByte(ushort port)
         {
             throw new NotImplementedException();
         }
 
-        public void WritePortWord(ushort port, ushort value)
+        public void WritePortByte(ushort port, byte value)
         {
             throw new NotImplementedException();
         }

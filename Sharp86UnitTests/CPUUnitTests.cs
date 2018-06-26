@@ -30,6 +30,9 @@ namespace Sharp86UnitTests
             _emitBuffer.Append("ORG 0x100\n");
             ip = 0x100;
             _mem = new byte[0x20000];
+            _portReadQueues = new Dictionary<ushort, List<byte>>();
+            _portWrittenQueues = new Dictionary<ushort, List<byte>>();
+            _accessedPorts = new HashSet<ushort>();
         }
 
         public bool IsExecutableSelector(ushort seg)
@@ -107,22 +110,78 @@ namespace Sharp86UnitTests
             flushEmit();
             while (ip != _emitLocation)
             {
-                Step();
+                Run(1);
             }
         }
         protected void step()
         {
             flushEmit();
-            Step();
+            Run(1);
         }
 
-        public virtual ushort ReadPortWord(ushort port)
+        Dictionary<ushort, List<byte>> _portReadQueues;
+        Dictionary<ushort, List<byte>> _portWrittenQueues;
+        HashSet<ushort> _accessedPorts;
+
+        public bool WasPortAccessed(ushort port)
         {
-            return 0;
+            return _accessedPorts.Contains(port);
         }
 
-        public virtual void WritePortWord(ushort port, ushort value)
+        public void EnqueueReadPortByte(ushort port, byte value)
         {
+            List<byte> queue;
+            if (!_portReadQueues.TryGetValue(port, out queue))
+            {
+                queue = new List<byte>();
+                _portReadQueues.Add(port, queue);
+            }
+
+            queue.Add(value);
+        }
+
+        public byte DequeueWrittenPortByte(ushort port)
+        {
+            List<byte> queue;
+            if (!_portWrittenQueues.TryGetValue(port, out queue))
+                return 0;
+
+            if (queue.Count == 0)
+                return 0;
+
+            var data = queue[0];
+            queue.RemoveAt(0);
+            return data;
+        }
+
+        public virtual byte ReadPortByte(ushort port)
+        {
+            _accessedPorts.Add(port);
+
+            List<byte> queue;
+            if (!_portReadQueues.TryGetValue(port, out queue))
+                return 0;
+
+            if (queue.Count == 0)
+                return 0;
+
+            var data = queue[0];
+            queue.RemoveAt(0);
+            return data;
+        }
+
+        public virtual void WritePortByte(ushort port, byte value)
+        {
+            _accessedPorts.Add(port);
+
+            List<byte> queue;
+            if (!_portWrittenQueues.TryGetValue(port, out queue))
+            {
+                queue = new List<byte>();
+                _portWrittenQueues.Add(port, queue);
+            }
+
+            queue.Add(value);
         }
 
         public ushort ReadWord(ushort seg, ushort offset)

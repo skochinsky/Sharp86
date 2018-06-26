@@ -793,12 +793,18 @@ namespace Sharp86
         public virtual void RaiseHalt()
         {
             _halt = true;
+            AbortRunFrame();
         }
 
         public bool Halted
         {
             get { return _halt; }
-            set { _halt = value; }
+            set
+            {
+                _halt = value;
+                if (value)
+                    AbortRunFrame();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
