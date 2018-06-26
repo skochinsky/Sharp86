@@ -223,7 +223,6 @@ namespace Sharp86
                     if (!_shouldContinue)
                     {
                         OnBreak();
-                        _modifiedAddress.Clear();
                     }
                 }
                 finally
@@ -309,142 +308,6 @@ namespace Sharp86
 
         bool _break;
 
-        // Whether to record the addresses of any written bytes
-        bool _captureModifiedAddresses;
-        public bool CaptureModifiedAddresses
-        {
-            get { return _captureModifiedAddresses; }
-            set { _captureModifiedAddresses = value; PrepareBreakPoints(); }
-        }
-
-        // A list of modified addresses
-        List<AddressRange> _modifiedAddress = new List<AddressRange>();
-
-        /*
-        public bool DidMemoryChange(ushort seg, ushort startOffset, ushort length)
-        {
-            int endOffset = startOffset + length;
-
-            for (int i = 0; i < _modifiedAddress.Count; i++)
-            {
-                var a = _modifiedAddress[i];
-
-                // Check segment
-                if (a.Segment != seg)
-                    continue;
-
-                // Does it overlap the requested address range?
-                if (a.Offset + a.Length <= startOffset)
-                    continue;
-                if (a.Offset >= endOffset)
-                    continue;
-
-                return true;
-            }
-
-            return false;
-        }
-        */
-
-        // Get an array indicating which bytes in the specified range were modified
-        public bool[] GetModifiedAddresses(ushort seg, ushort startOffset, ushort length)
-        {
-            bool[] modified = null;
-
-            int endOffset = startOffset + length;
-
-            // Mark modified ones
-            for (int i = 0; i < _modifiedAddress.Count; i++)
-            {
-                var a = _modifiedAddress[i];
-
-                // Check segment
-                if (a.Segment != seg)
-                    continue;
-
-                // Does it overlap the requested address range?
-                if (a.Offset + a.Length <= startOffset)
-                    continue;
-                if (a.Offset >= endOffset)
-                    continue;
-
-                // Create the array
-                if (modified == null)
-                    modified = new bool[endOffset - startOffset];
-
-                // Work out index range
-                int startIndex = a.Offset - startOffset;
-                int endIndex = startIndex + a.Length;
-
-                // Crop to valid overlap
-                if (startIndex < 0)
-                    startIndex = 0;
-                if (endIndex >= modified.Length)
-                    endIndex = modified.Length;
-
-                // Mark it
-                for (int j=startIndex; j<endIndex; j++)
-                {
-                    modified[j] = true;
-                }
-            }
-
-            return modified;
-        }
-
-        // Called from WriteByte - keep a list of all modified addresses
-        // Record them in ranges since they tend to happen in local areas
-        void RecordModifiedAddress(ushort seg, ushort offset)
-        {
-            int i;
-            for (i = 0; i < _modifiedAddress.Count; i++)
-            {
-                var a = _modifiedAddress[i];
-                if (seg == a.Segment)
-                {
-                    // Already recorded?
-                    if (offset >= a.Offset && offset < (ushort)(a.Offset + a.Length))
-                    {
-                        break;
-                    }
-
-                    // Extend to before
-                    if (offset > 0 && offset == a.Offset - 1)
-                    {
-                        a.Offset--;
-                        a.Length++;
-                        break;
-                    }
-                    
-                    // Extend after
-                    if (offset < 0xFFFF && offset == a.Offset + a.Length)
-                    {
-                        a.Length++;
-                        break;
-                    }
-                }
-            }
-
-            if (i == _modifiedAddress.Count)
-            {
-                // Not found
-                _modifiedAddress.Add(new AddressRange()
-                {
-                    Offset = offset,
-                    Segment = seg,
-                    Length = 1,
-                });
-            }
-            else if (i > 0)
-            {
-                // Was found but not in the first entry - move it for
-                // quicker match next time
-                var a = _modifiedAddress[i];
-                _modifiedAddress.RemoveAt(i);
-                _modifiedAddress.Insert(0, a);
-            }
-        }
-
         protected virtual void PrepareBreakPoints()
         {
             if (_cpu == null)
@@ -454,7 +317,7 @@ namespace Sharp86
             _memReadBreakPoints = _allBreakPoints.Where(x => x.Enabled).OfType<IBreakPointMemRead>().ToList();
 
             // Hook/unhook the CPU's memory bus
-            if (_memReadBreakPoints.Count > 0 || _memWriteBreakPoints.Count>0 || _captureModifiedAddresses)
+            if (_memReadBreakPoints.Count > 0 || _memWriteBreakPoints.Count>0)
             {
                 if (_cpu.ActiveMemoryBus != this)
                 {
@@ -493,7 +356,7 @@ namespace Sharp86
         {
             // Read the old value
             byte oldValue = 0;
-            if (_captureModifiedAddresses || _memWriteBreakPoints.Count > 0)
+            if (_memWriteBreakPoints.Count > 0)
             {
                 try
                 {
@@ -517,22 +380,6 @@ namespace Sharp86
 
             // Do the write
             _cpu.MemoryBus.WriteByte(seg, offset, value);
-
-            // Record changed memory
-            if (_captureModifiedAddresses)
-            {
-                try
-                {
-                    // Capture the old value
-                    if (_cpu.MemoryBus.ReadByte(seg, offset) != oldValue)
-                        RecordModifiedAddress(seg, offset);
-                }
-                catch
-                {
-                    // Ignore
-                }
-            }
-
         }
 
         #endregion

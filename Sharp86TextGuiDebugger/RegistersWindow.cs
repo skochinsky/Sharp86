@@ -87,7 +87,7 @@ namespace Sharp86
             ctx.WriteLine("DT: {0}", cpu.CpuTime - _cpuTime);
         }
 
-        public void Capture()
+        public void OnResume()
         {
             var cpu = _debugger.CPU;
             _ax = cpu.ax; 

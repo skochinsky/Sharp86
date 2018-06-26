@@ -17,6 +17,7 @@ along with Sharp86.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using ConFrames;
 using PetaJson;
@@ -74,7 +75,29 @@ namespace Sharp86
             CursorY = 0;
             Invalidate();
         }
-       
+
+        byte[] CaptureSegment(ushort seg)
+        {
+            var list = new List<byte>();
+            var bus = _debugger.CPU.MemoryBus;
+            try
+            {
+                for (int i = 0; i < 0x10000; i++)
+                {
+                    list.Add(bus.ReadByte(seg, (ushort)i));
+                }
+            }
+            catch (CPUException)
+            {
+                // Ignore
+            }
+
+            return list.ToArray();
+        }
+
+        ushort _capturedSeg;
+        byte[] _capturedBytes;
+
         public override void OnPaint(PaintContext ctx)
         {
             var bus = _debugger.CPU.MemoryBus;
@@ -85,7 +108,6 @@ namespace Sharp86
 
             // Get memory state
             var displayedBytes = (ushort)(BytesPerRow * ClientSize.Height);
-            var modifiedBytes = _debugger.GetModifiedAddresses(_seg, _offset, displayedBytes);
 
             ushort modAttributes = ConFrames.Attribute.Make(ConsoleColor.White, ConsoleColor.Blue);
 
@@ -131,16 +153,36 @@ namespace Sharp86
                     for (int bi=0; bi<bytesPerFormat; bi++)
                     {
                         // Work out if modified
-                        var thisByteModified = modifiedBytes == null ? false : modifiedBytes[offset - _offset + bi];
-                        modified |= thisByteModified;
+                        var thisByteModified = false;
 
+                        // Don't continue attempting to read memory if we got a CPU exception on prior reads
                         if (memoryValid)
                         {
                             try
                             {
+                                // Get the byte
                                 var b = bus.ReadByte(_seg, (ushort)(offset + bi));
+
+                                // Update the data word
                                 data = (uint)(data | (uint)(b << (8 * bi)));
 
+                                // Work out if this byte has changed
+                                if (_capturedBytes != null && _capturedSeg == _seg)
+                                {
+                                    if (offset + bi < _capturedBytes.Length)
+                                    {
+                                        // Memory was valid and still is
+                                        var oldByte = _capturedBytes[offset + bi];
+                                        thisByteModified = oldByte != b;
+                                    }
+                                    else
+                                    {
+                                        // Memory wasn't valid but now is
+                                        thisByteModified = true;
+                                    }
+                                }
+
+                                // Output character
                                 if (b >= 32 && showChars)
                                 {
                                     ctx.ForegroundColor = thisByteModified ? ConsoleColor.White : ConsoleColor.Gray;
@@ -149,8 +191,19 @@ namespace Sharp86
                             }
                             catch (CPUException)
                             {
+                                if (_capturedBytes != null && _capturedSeg == _seg)
+                                {
+                                    if (offset + bi < _capturedBytes.Length)
+                                    {
+                                        // Memory was valid and now isn't
+                                        thisByteModified = true;
+                                    }
+                                }
+
                                 memoryValid = false;
                             }
+
+                            modified |= thisByteModified;
                         }
                     }
 
@@ -356,6 +409,12 @@ namespace Sharp86
             }
 
             Invalidate();
+        }
+
+        public void OnResume()
+        {
+            _capturedSeg = _seg;
+            _capturedBytes = CaptureSegment(_seg);
         }
     }
 }
