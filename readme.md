@@ -14,7 +14,7 @@ In the context of Win3mu this means the running software thinks it's running in 
 
 ## Hosting Sharp86
 
-To host Sharp86, first create an instance of it, or derive a class from it and provide an implementation of a memory bus and a port bus:
+To host Sharp86, first create an instance of it, or derive a class from it and provide an implementation of the `IMemoryBus` and `IPortBus` interfaces:
 
 ```cs
 class MyMachine : Sharp86.CPU, IMemoryBus, IPortBus
@@ -38,7 +38,7 @@ public interface IMemoryBus
 }
 ```
 
-A minimal implementation for a flat memory model might look something like this:
+A minimal implementation for a flat (non-protected mode) memory model might look something like this:
 
 ```cs
 // A chunk of memory
@@ -79,7 +79,7 @@ A minimal implementation of this could simply return 0 and ignore port writes.
 
 ## Running the Processor
 
-Before running the processor, you'll need to load some valid 8086 code somewhere into the processor's address space.  How you do this is outside the scope of the document and depends on what you're trying to emulate.  Suffice to say when the processor starts executing you'll need to provide valid code to execute via the `IMemoryBus.ReadByte()` method.
+Before running the processor, you'll need to load some valid 8086 code somewhere into the processor's address space.  How you do this is outside the scope of the document (although see the section "Minimal Host Implementation" below) and depends on what you're trying to emulate.  Suffice to say when the processor starts executing you'll need to provide valid code to execute via the `IMemoryBus.ReadByte()` method.
 
 You can set the address at which the processor will begin executing by directly accessing the IP register:
 
@@ -159,7 +159,7 @@ Note the processor doesn't include an interrupt controller nor have a concept of
 
 For a minimal host implementation see the included "ConDos" program.  ConDos provides a minimal implementation of a PC/DOS type machine that implements a single DOS interrupt - Int 21h, Sub-Function 9 - Write a string to the console.
 
-In the `sandbox` subdirectory of the ConDos project, you'll also find a simple DOS .com program that only uses this one DOS interrupt that can be used for testing.
+In the `sandbox` subdirectory of the ConDos project, you'll also find a simple DOS .com program that only uses this one DOS interrupt that can be used for testing.  (the `test.com` program will also run on a real DOS machine)
 
 ```
 C:\Users\Brad\Projects\Sharp86\ConDos>..\build\Debug\ConDos.exe sandbox\test.com
@@ -175,30 +175,29 @@ Hello World from Sharp86 - (1)
 Hello World from Sharp86 - (0)
 ```
 
-Here's the test program assembly source which can be built using the `build.bat` command in the same directory (you'll need YASM installed).
+Here's the test program assembly source which can be built using the `build.bat` command in the same directory (you'll need [YASM](https://yasm.tortall.net/) installed).
 
 ```asm
 BITS 16
 org 100h
 
-
-        mov             cx,10
+        mov     cx,10
 loop1:
-        mov             al,cl
-        add             al,'0'-1
-        mov             [counter],al
-        mov             ah,09h
-        mov             dx,hello
-        int             21h
+        mov     al,cl
+        add     al,'0'-1
+        mov     [counter],al
+        mov     ah,09h
+        mov     dx,hello
+        int     21h
         loop    loop1
         ret
 
 
 hello:
-        db              "Hello World from Sharp86 - ("
+        db      "Hello World from Sharp86 - ("
 counter:
-        db              "0"
-        db              ")", 13, 10, "$"
+        db      "0"
+        db      ")", 13, 10, "$"
 ```
 
 
