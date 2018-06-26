@@ -27,7 +27,7 @@ class MyMachine : Sharp86.CPU, IMemoryBus, IPortBus
 }
 ```
 
-The memory bus is a simple 8-bit bus used everytime the process needs to read or write memory:
+The memory bus is a simple 8-bit bus used everytime the processor needs to read or write memory:
 
 ```cs
 public interface IMemoryBus
@@ -57,7 +57,7 @@ A minimal implementation for a flat memory model might look something like this:
     }
 
     // Check if a selector is executable.  For non-protected mode
-    // just return true.  Called to validate selector's before 
+    // just return true.  Called to validate selectors before 
     // being loaded into the cs register
     bool IMemoryBus.IsExecutableSelector(ushort seg)
     {
@@ -97,15 +97,15 @@ The processor will now run, reading instructions from the memory bus and executi
 
 ## About Run Frames
 
-The above call to `Run()` executes what's called a "run frame".  A run frame is set of instructions executed as a group.  Executing multiple instructions in run frames is considerably faster than repeatedly calling a Step() method (which btw doesn't exist)
+The above call to `Run()` executes what's called a "run frame".  A run frame is set of instructions executed as a group.  Executing multiple instructions in run frames is considerably faster than calling a Step() method (if it existed) many times.
 
-Normally a run frame will execute until the specified number of instructions have been executed however you can cancel the current run frame by calling the `CPU.AbortRunFrame()` method.  
+Normally a run frame will execute until the specified number of instructions have been executed however you can cancel the current run frame by calling the `CPU.AbortRunFrame()` method while in a callback from a bus operation, or an interrupt handler (see below)
 
 You might want to do this if the processor executes an instruction that should cause the machine to shut down (eg: calling a DOS exit process interupt) and no more instructions should be executed.
 
 ## Implementing Interrupt Handlers
 
-Aside from the memory bus and port bus, the other main way the CPU has of interacting with the hosting environment is via interrupts.
+Aside from the memory bus and port bus, the other main way the CPU can interact with the hosting environment is via interrupts.
 
 To install an interrupt handler, override the `CPU` class's `RaiseInterrupt` method:
 
@@ -128,7 +128,7 @@ public override void RaiseInterrupt(byte interruptNumber)
 }
 ```
 
-By returning from RaiseInterrupt without calling the base method implementation the CPU will continue execution at the instruction immediately after the interrupt.
+By returning from `RaiseInterrupt` without calling the base method implementation the CPU will continue execution at the instruction immediately after the interrupt.
 
 Normally an interrupt handler will handle the interrupt by directly interacting with the machine's memory and/or registers:
 
@@ -155,7 +155,7 @@ _debugger = new Sharp86.TextGuiDebugger();
 _debugger.CPU = _cpu;
 ```
 
-To break the debugger at the curently executing instruction, call it's `Break()` method:
+To break the debugger at the on the next executed instruction, call it's `Break()` method:
 
 ```cs
 if (IsKeyPress && KeyCode == KeyCode.F9)
@@ -164,11 +164,11 @@ if (IsKeyPress && KeyCode == KeyCode.F9)
 }
 ```
 
-Calling `Break()` will cause execution to stop just before the next instruction is executed.  (ie: the processor need to be running for the break to occur - either by calling `Run()` again, or by calling `Break()` while a call to `Run()` is in progress).
+Calling `Break()` will cause execution to stop just before the next instruction is executed.  (ie: the processor needs to be running for the break to occur - either by calling `Run()` again, or by calling `Break()` while a call to `Run()` is in progress).
 
 ## Using the Debugger
 
-The built in debugger is displayed as a Windows console mode window with a GUIish retro 90's style text mode debugger.  The GUI is somewhat limited (ie: unfortunately no mouse support) but considerably better than a scrolling console mode debugger.
+The built in debugger is displayed as a Windows console mode window with a GUIish retro 90's style text mode user-interface.  The GUI is somewhat limited (ie: unfortunately no mouse support) but considerably better than a scrolling console mode debugger.
 
 The basics of using the debugger are as follows:
 
@@ -180,13 +180,13 @@ The basics of using the debugger are as follows:
 * Ctrl+Tab and Ctrl+Shift+Tab move focus between windows (aka: panels)
 * Type over an address to change position (code and data windows)
 * Shift + Up/Down in console window to scroll (but, see notes below)
-* Type "help" in console window for list of other commands.
+* Type "help" in the console window for list of other commands.
 
 By default, some of the above keys won't work in newer versions of Windows. To fix this, click the debugger window's system menu, choose Properties and turn off: "Quick Edit Mode", "Insert Mode", "Enable Ctrl Key Shortcuts", "Filter clipboard contents on paste", "Enable line wrapping selection" and "Extended text selection keys".
 
 ## Debugger Commands
 
-The debugger supports the following set of commands (from the `help` command):
+The debugger supports the following set of commands that can be typed into the console window (from the `help` command):
 
 ```
                   bp - Set a break point at a code location
@@ -231,7 +231,7 @@ The debugger supports the following set of commands (from the `help` command):
               w edit - Edit a watch point
 ```
 
-Some commands expect arguments in which case you can use expressions.  Most typical operators are supported.
+Some commands expect arguments in which case you can use expressions.  Most C# style operators are supported.
 
 eg: This would move the memory window to watch 16 bytes before the current stack pointer.
 
@@ -261,7 +261,24 @@ eg: set a break point on a write to memory:
 bp memw ds:0x1234,16
 ```
 
-Aside from watch expressions, all expressions are evaluted at the time the command is invoked (ie: the above break point wouldn't move if DS changed).
+Aside from watch expressions, all expressions are evaluted at the time the command is invoked (ie: the above break point wouldn't move if the DS register changed).
 
 Note too that break points are evaluated for exact matches on the segment/offset.  For memory models where multiple addresses refer to the same memory location, break points only work on a matching segment address.
 
+## License
+
+Sharp86 - 8086 Emulator
+Copyright &copy; 2017-2018 Topten Software.
+
+Sharp86 is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Sharp86 is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Sharp86.  If not, see <http://www.gnu.org/licenses/>.
