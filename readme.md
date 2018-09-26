@@ -16,11 +16,13 @@ In the context of Win3mu this means the running software thinks it's running in 
 
 Sharp86 is hosted on BitBucket:
 
-https://bitbucket.org/toptensoftware/sharp86
+<https://bitbucket.org/toptensoftware/sharp86>
 
 or more typically you'd just add it as a submodule to an existing project:
 
-git submodule add https://bitbucket.org/toptensoftware/sharp86.git
+```
+> git submodule add https://bitbucket.org/toptensoftware/sharp86.git
+```
 
 ## Hosting Sharp86
 
