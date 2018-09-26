@@ -12,6 +12,16 @@ In other words, even though a host can emulate protected mode for user mode soft
 
 In the context of Win3mu this means the running software thinks it's running in protected mode, but Win3mu itself isn't running the real Windows 3 operating system.
 
+## Download
+
+Sharp86 is hosted on BitBucket:
+
+https://bitbucket.org/toptensoftware/sharp86
+
+or more typically you'd just add it as a submodule to an existing project:
+
+git submodule add https://bitbucket.org/toptensoftware/sharp86.git
+
 ## Hosting Sharp86
 
 To host Sharp86, first create an instance of it, or derive a class from it and provide an implementation of the `IMemoryBus` and `IPortBus` interfaces:
