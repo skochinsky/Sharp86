@@ -177,7 +177,7 @@ Hello World from Sharp86 - (0)
 
 Here's the test program assembly source which can be built using the `build.bat` command in the same directory (you'll need [YASM](https://yasm.tortall.net/) installed).
 
-```asm
+```
 BITS 16
 org 100h
 
